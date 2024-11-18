@@ -58,19 +58,19 @@ nmi:
 	; ora #%11100000		;	Enable dark emphasis
 	; sta PPU_MASK
 
-  ; If nametables are updating, don't do the palette update this frame
+	; If nametables are updating, don't do the palette update this frame
 	lda <NAME_UPD_ENABLE
 	beq @checkPal
-  ; don't run palette switches on the same frame that we flush vram to save time
-  lda VRAM_BUF
-  cmp #$ff
-  beq @checkPal
-	  jsr _flush_vram_update2
-    jmp @skipUpd
+	; don't run palette switches on the same frame that we flush vram to save time
+	lda VRAM_BUF
+	cmp #$ff
+	beq @checkPal
+		jsr _flush_vram_update2
+		jmp @skipUpd
 @checkPal:
 	lda <PAL_UPDATE		;update palette if needed
 	bne @updPal
-	jmp @skipUpd
+	beq @skipUpd	; = BRA
 
 @updPal:
 
@@ -81,8 +81,8 @@ nmi:
 	sta PPU_ADDR
 	stx PPU_ADDR
 
-  lda #<PAL_BUF-1
-  jsr palette_popslide_buffer
+	lda #<PAL_BUF-1
+	jsr palette_popslide_buffer
 
 @skipUpd:
 
@@ -98,56 +98,55 @@ nmi:
 	lda <PPU_CTRL_VAR
 	sta PPU_CTRL
 
-  lda _use_auto_chrswitch
-  beq :+
-    jsr _set_tile_banks
-  :
+	lda _use_auto_chrswitch
+	beq :+
+		jsr _set_tile_banks
+	:
 
-  lda #0
-  sta mmc3IRQTableIndex
-  sta mmc3IRQJoever
+	lda #0
+	sta mmc3IRQTableIndex
+	sta mmc3IRQJoever
 
-  jsr irq_parser ; needs to happen inside v-blank... 
-                   ; so goes before the music
-            ; but, if screen is off this should be skipped
-  
-  
-  lda _pauseStatus
-  bne @calc
-  lda _kandokidshack4
-  cmp #$0f
-  beq @calc2
-  lda _slowmode
-  beq @calc
+	jsr irq_parser	; needs to happen inside v-blank...
+					; so goes before the music
+					; but, if screen is off this should be skipped
+	
+	lda _pauseStatus
+	bne @calc
+	lda _kandokidshack4
+	cmp #$0f
+	beq @calc2
+	lda _slowmode
+	beq @calc
 @calc2:
-  lda _kandoframecnt
-  and #$01
-  bne @skipAll
-  
-@calc:
-  lda noMouse
-  bne @SkipMouse
-  ; Read the raw controller data synced with OAM DMA to prevent
-  ; DMC DMA bugs
-  jsr oam_and_readjoypad
+	lda _kandoframecnt
+	and #$01
+	bne @skipAll
 
-  lda <(mouse + kMouseButtons)
-  and #$0f
-  cmp #$01
-  beq :+
+@calc:
+	lda noMouse
+	bne @SkipMouse
+	; Read the raw controller data synced with OAM DMA to prevent
+	; DMC DMA bugs
+	jsr oam_and_readjoypad
+
+	lda <(mouse + kMouseButtons)
+	and #$0f
+	cmp #$01
+	beq :+
 @SkipMouse:
 	LDA #>OAM_BUF
-  	STA PPU_OAM_DMA
+	STA PPU_OAM_DMA
 	sta noMouse ; it checks for non zero, not just 1
 	lda <joypad1
 	sta TEMP + 4
-    jsr _pad_poll
-  :
-  ; Calculate the press/release for the controllers
-  ; and also update mouse X/Y coords after the timing sensitive parts
-  ; of NMI are complete
+	jsr _pad_poll
+	:
+	; Calculate the press/release for the controllers
+	; and also update mouse X/Y coords after the timing sensitive parts
+	; of NMI are complete
 
-  jsr calculate_extra_fields
+	jsr calculate_extra_fields
 
 @skipAll:
 
@@ -186,22 +185,22 @@ pal_copy:
 
 	ldy #$00
 
-@0:
+	@0:
 
-	lda (PTR),y
-	sta PAL_BUF_RAW,x
-	inx
-	iny
-	dec <LEN
+		lda (PTR),y
+		sta PAL_BUF_RAW,x
+		inx
+		iny
+		dec <LEN
 	bne @0
 
-  ldx #32 - 1
+	ldx #32 - 1
 @loop:
-    ldy PAL_BUF_RAW,x
-    lda (PAL_PTR),y
-    sta PAL_BUF,x
-    dex
-    bpl @loop
+	ldy PAL_BUF_RAW,x
+	lda (PAL_PTR),y
+	sta PAL_BUF,x
+	dex
+	bpl @loop
 
 	inc <PAL_UPDATE
 
@@ -402,7 +401,7 @@ _oam_clear:
 	stx OAM_BUF + (I * 4)
 .endrepeat
 	rts
-	
+
 ;void __fastcall__ oam_clear_player();
 .importzp _gamemode
 _oam_clear_player:
